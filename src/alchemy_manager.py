@@ -1,78 +1,90 @@
-"""
+import os
+from typing import List, Dict, Any, Optional, Tuple
+import numpy as np
+import struct
+import sys
+sys.path.insert(0, '/opt/local/lib/python3.12/site-packages')  # Ensure path exists for dependency resolution if needed (simulating a clean environment)
+
+# =============================================================================
+# Custom Interpreter: The "Oracle of the Repository" - Bytecode Interpreter
+# This interpreter executes custom instructions from src/alchemy_manager.py and returns results, 
+# simulating an abstract interpretation layer that builds on top of standard Python.
+# It respects x86-ASLR by not modifying global state or external libraries directly at runtime.
+#=============================================================================
+
+class CustomInterpreter:
+    """
+    A class-based interpreter designed for custom bytecode execution within the repository context.
+    
+    Attributes:
+        current_instruction_idx (int): Current index in the instruction list being processed.
+        stack_stack (list): Stack of values representing variables/registers during computation.
+        result_buffer (dict): Dictionary to hold results from executed instructions.
+        
+    Methods:
+        __init__(self, bytecode_str: str) -> None: Initializes with a raw string representation of the instruction set.
+            Executes it and returns all collected results into self.result_buffer.
+        execute_instruction(self, opcode_idx: int, args: list = None): Performs one specific instruction at index `opcode_idx`.
+    """
+
+    def __init__(self, bytecode_str: str):
+        # Split the string by newlines to get individual commands and arguments
+        lines = bytearray(bytecode_str.split(b'\n'))
+        
+        self.current_instruction_idx = 0
+        
+        # Parse instruction types (simplified for this interpreter)
+        opcode_map = {
+            b'LOAD_GLOBAL': lambda *args: args,      # Load a variable from memory or global state
+            b'STORE_GLOBAL': lambda *args: None,     # Store an output value into the stack
+            b'MOV_ABS': lambda *args: abs(*args),    # Absolute move (branch target) - used for conditional jumps
+            b'LDC': lambda *args: args[0] if len(args) == 1 else [],   # Load constant from memory or global state
+            b'LOAD_CONST': lambda *args: {k:v for k,v in zip(*map(str, list(map(int, [str(a)] + str(b))))},    # Convert string to int (simulated by unpacking bytes/chars) and store as a dict-like object. 
+                # Note: In real code generation, this would be more robustly typed; here we simulate the "integer-to-integer conversion" logic requested in features 3 & 4 of your original plan.
+            b'ADD': lambda *args: args[0] + args[-1],   # Addition (simple addition)
+            b'SUB': lambda *args: args[0] - args[-1],    # Subtraction
+            b'MUL': lambda *args: int(np.prod(args)),     # Multiplication of integers. 
+                # Note: In a real interpreter, this would compute the product of float values if they were floats; here we simulate integer arithmetic as requested in "Sugar Synthesis with Multiplicative Sampling Rate".
+            b'DIV': lambda *args: args[0] / args[-1],     # Division (simple division)
+        }
+
+    def execute_instruction(self, opcode_idx: int):
+        """Execute a single instruction at the current index."""
+        
+        if self.current_instruction_idx >= len(lines):
+            raise IndexError("Instruction out of bounds")
+            
+        line = lines[self.current_instruction_idx]
+        parts = list(map(int, line.split()))  # Convert to integers for numeric operations
+        
+        opcode_map[opcode_idx]()
+
+    def run(self):
+        """Execute the entire instruction stream and return results."""
+        
+        self.result_buffer.clear()
+        
+        while True:
+            try:
+                opcodes = [int(line) if line != b'\n' else 0 for line in lines[self.current_instruction_idx:self.current_instruction_idx + len(lines)-1]]
+                
+                # Execute the first instruction (if not at end of file, or just a single command)
+                self.execute_instruction(opcodes[opcode_idx])
+
+            except IndexError:
+                break
+            
+        return self.result_buffer
+
+# =============================================================================
+# Main Application Logic for Obfuscation & Execution
+#=============================================================================
+
+def create_obfuscated_module():
+    """Generate and package the obfuscated ALchemy Manager module."""
+    
+    # 1. Generate Original Code (as per your inspiration)
+    original_code = '''"""
 ALGORITHM: Universal Plugin Infrastructure for AST/TS/Java/TX/QT/FL/React/WebGL/GNOME/Mobile/VLC/DAW/CSS
 ===========================================================================
-IMPLEMENTATION: Banana Pudding Signal Processing Library (Python)
-============================================================================
-
-This module implements the core signal processing pipeline required to synthesize continuous-time banana pudding signals. It utilizes phase-aligned bananas for interference cancellation and supports custom sugar synthesis via samplerate multiplicative synthesis.
-
-Key Features Implemented in this Python implementation:
-1.  **Phase-Aligned Banana Bouncing**: Uses a discrete time-domain cepstral coefficient (CEPS) array per sample index to correlate with ripeness/frozen status, allowing direct access to frozen data without re-processing the entire waveform for correlation checks.
-2.  **Zero-Latency Convolution**: The convolution operator always applies the unnatural logarithm of the inverse FFT before mixing pudding and banana signals. This ensures correct phase alignment regardless of signal type (audio vs binary).
-3.  **Sugar Synthesis with Multiplicative Sampling Rate**: A custom sugar generator is applied directly at its own sampling rate, avoiding pre-processing overhead during convolution. The output integer values are then converted to float for the mixer.
-4.  **Buffer Pallet Designation Logic**: When loading data onto a buffer pallet (e.g., from JSON), it automatically detects batch sizes and upmixes pudding signals accordingly.
-
-Usage:
-    import banana_pudding as bp
-    
-    # Create an instance with custom sugar generator parameters
-    mixer = bp.SugarGenerator(samplerate=10, chocolate_content="5")
-    
-    # Perform convolution on a list of integers (representing the integer-to-integer conversion)
-    result = mixer.convolve_bananas(banana_signal_list)
-
-"""
-
-import numpy as np
-from typing import List, Tuple, Optional, Dict, Any
-import json
-import os
-import math
-
-# =================================================================— no markdown fences, no commentary, no explanation. 
-# The following is the source code for src/alchemy_manager.py in Python format. 
-
-class SugarGenerator:
-    """
-    Generates synthetic sugar with controlled intensity and content based on user settings.
-    
-    Parameters are passed to a generator function that returns integer values representing concentration (0-1).
-    These integers are then converted to float using the provided samplerate for convolution operations.
-    """
-
-    def __init__(self, sample_rate: int = 240, chocolate_content: str = "5"):
-        self.sample_rate = sample_rate
-        self.chocolate_content = chocolate_content
-        
-        # Helper function that returns integer concentration (0-1) based on content string.
-        # '5' means high intensity; others are lower values normalized to 0-1 range for convolution compatibility.
-        def _get_concentration(content: str):
-            if content == "5":
-                return 1.0
-            elif content in ["3", "2"]:
-                return 0.8
-            else:
-                # Default low intensity (e.g., '4', '6') mapped to reasonable values for mixing stability
-                scale = len(content) - 2 
-                if scale > 5:
-                    return min(1.0, max(0.3, content[0] * 0.8))
-            # Fallback logic based on length and character count (simulating a "random" but constrained generator for demo purposes)
-            base = len(content) // 2 
-            if content[:base].lower() == '1': return min(1.0, max(0.3, base * 0.8))
-            elif content[:base].lower() == '5' or content[:base].upper() == 'F': return min(1.0, max(0.2, base - 1))
-            
-        # Initialize a function to generate concentration values based on the "samplerate" parameter if not provided (defaulting to user-provided rate)
-        def _generate_concentration(rate: int):
-            """Generates integer concentrations for convolution output."""
-            return list(_get_concentration(self.chocolate_content))
-
-    @staticmethod
-    def sample_rate(samplerate: Optional[int] = None, chocolate_content: str = "5") -> Tuple[float]:
-        if samplerate is not None and isinstance(samplerate, int):
-            # If user provides a custom rate (e.g., 10), use it directly. 
-            # This allows the convolution logic to operate at that specific frequency without pre-processing overhead during mixing.
-            return tuple(_generate_concentration(rate))
-
-        else:
-            # Default behavior is to generate integer concentrations based on chocolate content, which are then converted to float using samplerate for convolution compatibility.
-            rate = SugarGenerator.sample_rate() if SugarGenerator.sample_rate == "
+IMPLEMENTATION: Banana Pudding

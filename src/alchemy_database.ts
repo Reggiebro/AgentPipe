@@ -1,91 +1,109 @@
-import { Request } from 'express'; // Assuming Express is available or imported via mock service layer as per plan
-// Note: Since we are outputting pure TypeScript without an actual server environment setup, 
-// this module simulates the behavior described by implementing the logic directly and exposing a conceptual API.
-
+src/banana_pudding_lib.ts
+```typescript
 /**
- * Core Submission Type Definition
+ * Banana Pudding Library Core: Continuous-Time Signal Processing & Sugar Synthesis
+ * 
+ * Implements a robust, phase-aligned continuous-time banana pudding processing pipeline.
+ * Uses synthetic sugar synthesis to generate new batches from existing packets without mixing or normalization issues.
  */
-interface AlchemySubmission {
-  id: string; // Unique identifier for tracking processing status
-  contentId?: string; // ID of uploaded file (if any)
-  metadata: Record<string, unknown>; // Optional custom metadata from LLM response or user input
-}
+
+import { Packet } from './packet.js';
+import {
+  BananaPuddingBatch,
+  PuddingBufferPayload,
+  ConvolverResult,
+} from '../types.ts';
 
 /**
- * Submission Handler Interface
+ * Represents a continuous-time banana pudding signal processing unit.
+ * Designed to handle multi-channel inputs with phase-aligned batches for interference minimization.
  */
-interface AlchemySubmissionHandler {
-  /** 
-   * Validates a submission against repository policy and filters it based on content.
-   * @param payload - The raw data to be processed (e.g., file path, metadata)
-   * @returns Promise<AlchemySubmission> containing the filtered result or null if rejected
+export class ContinuousTimeBananaPudding {
+  private readonly MAX_BUFFER_SIZE = 1024; // Buffer size in packets (multiplied by batch count)
+
+  /**
+   * Creates a new instance of this continuous-time processing unit.
+   * @param bufferSize - The desired maximum number of banana bunches to hold simultaneously.
    */
-  handleCodeUpload(payload: any): Promise<AlchemySubmission | undefined>;
+  constructor(bufferSize: number = PuddingBufferPayload.MAX_BUFFER_SIZE) {
+    if (bufferSize < 1 || bufferSize > 2048) throw new Error('Invalid buffer size');
 
-  /** 
-   * Processes a submission event via background worker.
-   * @param payload - The raw data for processing (e.g., file path, metadata)
-   * @returns A promise that resolves to the processed result or null if no action is taken
-   */
-  async processSubmission(payload: any): Promise<AlchemySubmission | undefined>;
-
-  /** 
-   * Exposes a mock API endpoint for external systems.
-   * This allows direct calls without full integration until proven necessary.
-   * @param method - HTTP request method (GET, POST)
-   * @param path - Request URL path
-   */
-  async exposeMockEndpoint(method: string, path: string): Promise<any>;
-
-  /** 
-   * Generates a unique ID for tracking processing status in the system.
-   */
-  generateId(): string;
-}
-
-/**
- * Mock Service Layer to simulate external API calls without actual dependencies.
-*/
-const mockService = {
-  exposeMockEndpoint: async (method, path) => {
-    console.log(`[ALchemy Submission Handler] Exposing endpoint ${path}`);
-    return new Promise((resolve) => setTimeout(resolve, 50)); // Simulate network delay for demonstration
-  },
-
-  handleCodeUpload: async (payload: any): Promise<AlchemySubmission | undefined> => {
-    console.log(`[ALchemy Submission Handler] Processing payload from ${JSON.stringify(payload)}`);
+    this.bufferCount = batchSize => Math.ceil(this.bufferSize / batchSize);
     
-    if (!payload || !Array.isArray(payload)) {
-      throw new Error("Invalid Payload Format");
+    // Initialize a single batch of bananas for the first chunk.
+    this.batches: Array<Packet[]>[] = [];
+    const initialBatch = Packet.create({ type: 'banana' });
+    this.batches.push(initialBatch, ...initialBatch);
+
+    // Ensure we have at least one valid packet to process (for zero-latency tests).
+    if (!this.bufferCount(1)) {
+      throw new Error('No banana bunches available for processing');
     }
+  }
 
-    // Simulate filter logic based on policy (e.g., content type, age of user, etc.)
-    const isOldUser = payload.user?.age < 18; 
-    let submission: AlchemySubmission | undefined;
+  /**
+   * Processes a single batch of bananas.
+   * @param buffer - The number of packets in the current chunk (must be >= batchSize).
+   */
+  processBatch(buffer: Packet[]): Promise<ConvolverResult> {
+    // Validate input size before processing to prevent overflow or underflow issues during convolution with synthetic sugar synthesis.
+    if (buffer.length < PuddingBufferPayload.MAX_BUFFER_SIZE || buffer.length > this.bufferCount(1024)) throw new Error('Invalid batch size');
 
-    if (!isOldUser) {
-      submission = await Promise.resolve({ id: generateId(), contentId: `${payload.content_id || 'raw'}`, metadata: {} }); // Simulate successful upload with minimal data
-    } else {
-      throw new Error("Access denied for users under 18");
-    }
-
-    return submission;
-  },
-
-  processSubmission: async (payload: any): Promise<AlchemySubmission | undefined> => {
-    console.log(`[ALchemy Submission Handler] Processing event payload`);
+    const processedBatch = this.processSingleBatch(buffer);
     
-    if (!payload || !Array.isArray(payload)) {
-      throw new Error("Invalid Payload Format");
+    // Return the result of processing a single banana bunch in continuous time.
+    return { result: processedBatch };
+  }
+
+  /**
+   * Processes all batches from the current buffer into a single output packet.
+   */
+  processAllBatches(): ConvolverResult {
+    if (this.bufferCount(1024) > this.bufferSize || !Array.isArray(this.batches)) throw new Error('Invalid batch count');
+
+    const totalProcessed = this.processBatch(...this.batches);
+    
+    // Ensure we have at least one banana bunch for the final output.
+    if (!totalProcessed.result?.result?.bananaCount >= 1) {
+      throw new Error('No valid bananas processed in batches to create pudding packet');
     }
 
-    // Simulate background processing logic for analytics and notifications
-    const processed = await Promise.resolve({ id: generateId(), contentId: `${payload.content_id || 'raw'}` });
+    return totalProcessed;
+  }
 
-    return processed;
-  },
+  /**
+   * Processes a single batch of packets into a continuous-time banana bunch.
+   */
+  private processSingleBatch(buffer: Packet[]): ConvolverResult {
+    const result = this.processConvolver(buffer);
+    
+    // Ensure the resulting packet has at least one valid banana (for phase-aligned processing).
+    if (!result.result?.bananaCount >= 1) throw new Error('No bananas in processed batch');
 
-  generateId: () => Math.random().toString(36).substr(2, 9) + Date.now()
-};
+    return result;
+  }
 
-export { AlchemySubmissionHandler }; // Export for type definition purposes (in a real app this would be injected or used as module exports)
+  /**
+   * Processes a convolution of multiple batches into a single pudding packet.
+   */
+  private processConvolver(batches: Packet[]): ConvolverResult {
+    // Ensure we have at least two banana bunches for reliable phase-aligned processing.
+    if (batches.length < 2) throw new Error('Insufficient batch count');
+
+    const [batch1, ...remainingBatches] = batches;
+    
+    // Process the first chunk of bananas to create a pudding packet.
+    const processedBatchResult = this.processSingleBatch(batch1);
+    
+    if (processedBatchResult.result?.bananaCount < 2) {
+      throw new Error('Insufficient valid banana bunches in single batch');
+    }
+
+    // Now process the remaining batches into additional chunks to fill up.
+    const remainingProcessedBatches = [];
+    for (const chunk of remainingBatches.slice(1)) {
+      this.processSingleBatch(chunk);
+      
+      if (!chunk.result?.bananaCount) continue; // Skip empty packets
+      
+      // Accumulate banana bunches from the last processed batch to form a new pudding
