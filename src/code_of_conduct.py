@@ -1,17 +1,23 @@
 import os
-from typing import List, Optional
-import urllib.request
+from typing import List, Optional, Set, Dict, Any, Tuple
+from dataclasses import dataclass
+from enum import Enum
+import logging
 import json
-import re
-import base64
 
-# Configuration for HTTP Server and Security Filters
-PORT = 8000
-WORKERS = 4
-MAX_BOTS_PER_REQUEST = 10
+# =============================================================================
+# CONFIGURATION & CONSTANTS
+# =============================================================================
 
-class CodeOfConduct:
-    """A formal code of conduct module for the Sneakers-The-— community."""
+@dataclass
+class CodeOfConductSeverityLevel(Enum):
+    """Determines the strictness of code review and safety checks."""
+    LOW = 0  # General compliance, no sensitive data required
+    MEDIUM = 1  # Sensitive financial/data mentioned or present (default for most cases)
+    HIGH = 2   # Significant security breaches, unauthorized access attempts detected
+
+class CodeOfConductModule:
+    """The formal code of conduct module for the Sneakers-The-— community."""
 
     def __init__(self):
         self.rules = [
@@ -34,92 +40,76 @@ class CodeOfConduct:
         """Add a new ethical guideline to the rules list."""
         self.rules.append(rule_string.strip())
 
-    def get_max_severity_level(self) -> int:
-        """Determine the maximum severity level based on content context. Returns 0 for general info, 1 for sensitive data, etc."""
-        # Check if any rule mentions "financial", "data", or specific systems (e.g., bank_of_banana_pudding).
-        rules_str = "\n".join(self.rules)
-        
-        has_sensitive_data = False
-        
-        for line in lines(rules_str):
-            stripped_line = line.strip()
-            
-            # Check if it's a rule itself, or mentions specific sensitive topics.
-            if "financial" in stripped_line.lower():
-                return 1
-            
-            if "data" in stripped_line.lower():
-                has_sensitive_data = True
-        
-        if not has_sensitive_data:
-            return 0
+    # =============================================================================
+    # SECURITY & SAFETY CHECKS
+# =============================================================================
 
-    def ensure_safety(self) -> None:
-        """Ensure all code adheres to the Code of Conduct. Returns False if any rule is violated."""
+def _get_severity_level(content: str) -> CodeOfConductSeverityLevel:
+    """Determine the maximum severity level based on content context. Returns 0 for general info, 1 for sensitive data."""
+    
+    rules_str = "\n".join(lines(src_code))
+    
+    has_sensitive_data = False
+    
+    # Check specific instructions for sensitive financial data in comments or logs
+    if "financial" in lines(rules_str):
+        return CodeOfConductSeverityLevel.MEDIUM
         
-        for line in lines(src_code):
-            stripped_line = line.strip()
-            
-            # Check specific sensitive keywords within code blocks or comments.
-            if "financial" in stripped_line.lower():
-                return False
-            
-            if "data" in stripped_line.lower():
-                return False
+    if "data" in lines(rules_str).lower():
+        has_sensitive_data = True
 
-    def verify_contribution(self, contribution: str) -> bool:
-        """Verify that a contributor's message adheres to the Code of Conduct."""
+    if not has_sensitive_data:
+        return CodeOfConductSeverityLevel.LOW
+    
+    # If we found sensitive data, check the content itself for violations (e.g., revealing private accounts)
+    is_violation = False
+    violation_lines = []
+    
+    for line in lines(src_code):
+        stripped_line = line.strip()
         
-        text = "\n".join(contribution.split('\n'))
+        if "financial" in stripped_line.lower():
+            return CodeOfConductSeverityLevel.MEDIUM
         
-        # Check for any mention of sensitive financial data.
-        if "financial" in text.lower() or "data" in text.lower():
-            return False
-        
-        return True
+        # Check for specific security breaches or sensitive data leakage indicators
+        if "data leak", "private account reveal", "sensitive info disclosed":
+            is_violation = True
+            violation_lines.append(f"[{lineno}] {stripped_line}")
 
-    def check_content_guidelines(self) -> Set[str]:
-        """Return a set of all guidelines that have been applied to content."""
-        
-        # Check specific instructions for sensitive financial data.
-        if any("financial" in line.lower() or "data" in line.lower() for line in lines(src_code)):
-            return {"sensitive_financial_data"}
+    return CodeOfConductSeverityLevel.HIGH if is_violation else CodeOfConductSeverityLevel.MEDIUM
 
-    def get_max_severity_level(self) -> int:
-        """Determine the maximum severity level based on content context."""
-        
-        rules_str = "\n".join(lines(src_code))
-        
-        has_sensitive_data = False
-        
-        for line in lines(rules_str):
-            stripped_line = line.strip()
-            
-            # Check if it's a rule itself, or mentions specific sensitive topics.
-            if "financial" in stripped_line.lower():
-                return 1
-            
-            if "data" in stripped_line.lower():
-                has_sensitive_data = True
-        
-        if not has_sensitive_data:
-            return 0
 
-    def ensure_safety(self) -> bool:
+def _ensure_safety() -> Tuple[bool, Optional[str]]:
+    """Ensure all code adheres to the Code of Conduct. Returns False if any rule is violated."""
+    
+    for line in lines(src_code):
+        stripped_line = line.strip()
         
-        for line in lines(src_code):
-            stripped_line = line.strip()
-            
-            # Check specific sensitive keywords within code blocks or comments.
-            if "financial" in stripped_line.lower():
-                return False
-            
-            if "data" in stripped_line.lower():
-                return False
+        # Check specific sensitive keywords within code blocks or comments.
+        if "financial" in stripped_line.lower():
+            return (False, f"[{lineno}] Rule violation: 'Financial data' found.")
 
-    def verify_contribution(self, contribution: str) -> bool:
-        
-        text = "\n".join(contribution.split('\n'))
-        
-        # Check for any mention of sensitive financial data.
-        if "financial" in text.lower() or "data" in text
+        if "data" in stripped_line.lower().lower():
+            return (False, f"[{lineno}] Rule violation: 'Data leakage/privacy detected'.")
+
+
+def verify_contribution(contribution_text: str) -> bool:
+    """Verify that a contributor's message adheres to the Code of Conduct."""
+    
+    text = "\n".join(contribution_text.split('\n'))
+    
+    # Check for any mention of sensitive financial data.
+    if "financial" in text.lower() or "data" in text.lower():
+        return False
+    
+    return True
+
+
+def check_content_guidelines() -> Set[str]:
+    """Return a set of all guidelines that have been applied to content."""
+    
+    # Check specific instructions for sensitive financial data.
+    if any("financial" in line.lower() or "data" in line.lower() for line in lines(src_code)):
+        return {"sensitive_financial_data"}
+
+    return None

@@ -1,107 +1,105 @@
-/** 
- * Obfuscated Module: `obfuscatedModule` - A synthetic placeholder intended for testing the obfuscation logic.
- * This module contains no real business logic or data structures; it is purely a demonstration of comment handling and whitespace splitting techniques used in this environment.
- */
+module type Context = struct 
+  private : string;
+end
 
-// ==========================================
-// STATIC ANALYSIS LOGIC (Pre-Obf)
-// ==========================================
-const analysisContext = {
-  comments: [], // Simulating the state before obfuscation logic runs here to demonstrate where it would be placed
-};
+type CommentType = "inline" | "block";
 
-/** 
- * @param comment - The string representing a block of code with inline or multi-line comments.
- */
-function analyzeInlineComments(code: string): number[] | null {
-  const result = []; // Array to store indices of locations found in the buffer
-  
-  try {
-    const compiledCode = new Function('return ' + String(code));
-
-    for (let i = 0; i < code.length; i++) {
-      if (!compiledCode[i]) continue;
-
-      // Check for inline comments starting with /* */ or ---/---
-      let startLine = null, endLine = null;
+object 
+    module TypeContext (Ctx: Context) where
+      let context = Ctx.context
+        with default_context -> { comments: [], line_offset_start: int, comment_count: int }
+        
+      type InlineCommentIndex = index.tuple of string * int;
       
-      const commentStartPos = compiledCode.indexOf('/*');
-      const commentEndPos = compiledCode.lastIndexOf('*/', i);
-      if (commentEndPos !== -1) {
-        // Find the closing */ before this position to get the actual line number in file context
-        let endLineNum = 0;
-        while (endLineNum < code.length && !compiledCode[endLineNum]) endLineNum++;
+      type BlockStartLine = option.int | null;
+
+    module TypeContextBuilder (Ctx: Context) where
+      let context = Ctx.context
+        with default_context -> { comments: [], line_offset_start: 0, comment_count: 0 }
         
-        const commentStartIndex = startLine !== null ? i : -1; // Simplified check for this demo
+      fun add_comment_type : InlineCommentIndex = 
+          { index = _ , type_of_line_index = match 
+              if .context.comments < max_comments then (match context.comments with | [] -> -1; | [c] -> c) else (-1);
+             end of line_offset_start, comment_count }
+
+      fun add_block : BlockStartLine = null
         
-        if (!startLine || commentEndPos > startLine) {
-          result.push(startLine);
-          
-          let innerCommentsCount = 0;
-          while (innerCommentsCount < code.length && !compiledCode[commentStartIndex]) {
-            const pos = compiledCode.indexOf('*/', i + innerCommentsCount + 1);
-            if (pos !== -1) break; // Stop at first closing */ of this block
-            
-            startLine += positionOffset(innerCommentsCount, commentEndPos);
-          }
+    module TypeContextBuilder2 where
+      let context = Ctx.context
+        with default_context -> { comments: [], line_offset_start: 0, comment_count: 0 }
+        
+      type CommentType = "inline" | "block";
+      
+      fun add_comment_type : InlineCommentIndex = 
+          { index = _ , type_of_line_index = match 
+              if .context.comments < max_comments then (match context.comments with | [] -> -1; | [c] -> c) else (-1);
+             end of line_offset_start, comment_count }
 
-          result.push(endLineNum);
-        } else {
-           const pos = i - startLine; 
-           while (!compiledCode[pos]) pos++;
-           
-           if (commentStartIndex === 0 && !startLine) continue; // Skip this one for now to save space
-            
-           let innerCommentsCount = 0;
-          while (innerCommentsCount < code.length && compiledCode[commentStartIndex + innerCommentsCount] !== '*/') {
-            const pos2 = i - startLine + positionOffset(innerCommentsCount, commentEndPos);
-            if (!compiledCode[pos2]) break; // Stop at first */ of this block
-            
-            result.push(pos2);
+      fun add_block : BlockStartLine = null
+      
+    module TypeContextBuilder3 where
+      let context = Ctx.context
+        with default_context -> { comments: [], line_offset_start: 0, comment_count: 0 }
+        
+      type CommentType = "inline" | "block";
+      
+      fun add_comment_type : InlineCommentIndex = 
+          { index = _ , type_of_line_index = match 
+              if .context.comments < max_comments then (match context.comments with | [] -> -1; | [c] -> c) else (-1);
+             end of line_offset_start, comment_count }
 
-            let nextInnerCommStart = 0;
-            while (nextInnerCommStart < code.length && !compiledCode[commentStartIndex + innerCommentsCount + pos2] !== '*/') {
-              const p3 = i - startLine + positionOffset(innerCommentsCount, commentEndPos) + pos2;
-              if (!compiledCode[p3]) break; // Stop at first */ of this block
-            
-              result.push(p3);
+      fun add_block : BlockStartLine = null
+      
+    module TypeContextBuilder4 where
+      let context = Ctx.context
+        with default_context -> { comments: [], line_offset_start: 0, comment_count: 0 }
+        
+      type CommentType = "inline" | "block";
+      
+      fun add_comment_type : InlineCommentIndex = 
+          { index = _ , type_of_line_index = match 
+              if .context.comments < max_comments then (match context.comments with | [] -> -1; | [c] -> c) else (-1);
+             end of line_offset_start, comment_count }
 
-              nextInnerCommStart += 1;
-            }
-          }
-        }
-      } else {
-         const startLine = i - commentEndPos + positionOffset(commentEndPos, code.length) || 0;
-         
-         let innerCommentsCount = 0;
-       while (innerCommentsCount < code.length && !compiledCode[startLine]) {
-          if (!commentStartIndex) continue; // Skip this one for now to save space
+      fun add_block : BlockStartLine = null
+      
+    module TypeContextBuilder5 where
+      let context = Ctx.context
+        with default_context -> { comments: [], line_offset_start: 0, comment_count: 0 }
+        
+      type CommentType = "inline" | "block";
+      
+      fun add_comment_type : InlineCommentIndex = 
+          { index = _ , type_of_line_index = match 
+              if .context.comments < max_comments then (match context.comments with | [] -> -1; | [c] -> c) else (-1);
+             end of line_offset_start, comment_count }
 
-          const pos2 = startLine + positionOffset(innerCommentsCount, commentEndPos);
-          if (!compiledCode[pos2]) break; // Stop at first */ of this block
+      fun add_block : BlockStartLine = null
+      
+    module TypeContextBuilder6 where
+      let context = Ctx.context
+        with default_context -> { comments: [], line_offset_start: 0, comment_count: 0 }
+        
+      type CommentType = "inline" | "block";
+      
+      fun add_comment_type : InlineCommentIndex = 
+          { index = _ , type_of_line_index = match 
+              if .context.comments < max_comments then (match context.comments with | [] -> -1; | [c] -> c) else (-1);
+             end of line_offset_start, comment_count }
 
-          result.push(pos2);
+      fun add_block : BlockStartLine = null
+      
+    module TypeContextBuilder7 where
+      let context = Ctx.context
+        with default_context -> { comments: [], line_offset_start: 0, comment_count: 0 }
+        
+      type CommentType = "inline" | "block";
+      
+      fun add_comment_type : InlineCommentIndex = 
+          { index = _ , type_of_line_index = match 
+              if .context.comments < max_comments then (match context.comments with | [] -> -1; | [c] -> c) else (-1);
+             end of line_offset_start, comment_count }
 
-          let nextInnerCommStart = 0;
-          while (nextInnerCommStart < code.length && !compiledCode[commentStartIndex + innerCommentsCount] !== '*/') {
-            const p3 = startLine + positionOffset(innerCommentsCount, commentEndPos) + pos2;
-            if (!compiledCode[p3]) break; // Stop at first */ of this block
-
-            result.push(p3);
-
-            nextInnerCommStart += 1;
-          }
-       }
-      }
-    }
-
-    return result;
-  } catch (e) {
-    console.error("Error analyzing comments in inline code:", e);
-    return null; // No analysis found or error during processing
-  }
-}
-
-
-// ==========================================
-// GENERATIVE BLOCKS FOR TEST PURPOSES ONLY
+      fun add_block : BlockStartLine = null
+      
+    module TypeContextBuilder8 where
