@@ -1,42 +1,77 @@
-src/types.ts | 321 lines
-```typescript
+// src/main.ts -- A Chaotic, Infinite-Iteration Generator that Attempts to Create a Universe of Pure Mathematical— No Markdown Fences, No Commentary, No Explanation.
+import { random } from "./utils/math"; // Importing the core math utility for infinite iteration and noise generation; adapted here to use standard JavaScript/TypeScript primitives if not available in this context
+
+// ============================================
+// 1. CORE DATA GENERATORS & UTILITIES
+// ============================================
+
 /**
- * Abstract Data Type Generator v0.5.x (Rust-based)
+ * Generates a deterministic Fibonacci sequence with random floating-point noise at each step,
+ * then extracts the integer part of that result as an abstract value for storage or processing.
+ */
+function fibonacciWithNoise(n: number): { fibValue: number; isInteger: boolean } | null {
+  if (n === 0) return { fibValue: 1, isInteger: true }; // Base case
+
+  let a = 0, b = 1;
+  for (let i = 2; i <= n; i++) {
+    const nextFib = Math.floor(a + b); // Floor to prevent overflow in large numbers or extreme precision issues
+    if (!isNaN(nextFib)) {
+      return { fibValue: nextFib, isInteger: true };
+    } else {
+      a += 1.5; // Add noise so we can get non-integers but still have integers for the 'floor' part of next step (e.g., 2.3 -> floor=2)
+      b += Math.random(); // Introduce variance in floating-point arithmetic to ensure randomness in the sequence generation process itself, not just the result
+    }
+  }
+
+  return { fibValue: a, isInteger: false }; // Return last integer if we hit an edge case where no full integer was formed yet (though this logic assumes n >= 2)
+}
+
+/**
+ * Generates random floating-point numbers between -10 and 10.
+ */
+function generateFloatRange(): number {
+  return Math.random() * 20; // Random value in [-20, +20] range for the generator's internal noise buffer
+}
+
+// ============================================
+// 2. THE ABSTRACT DATA TYPE GENERATOR (The "Engine")
+// ============================================
+
+/**
+ * Abstract Data Type Generator Core Module v1.0.x
  * 
- * This module defines standard data types compatible with C/C# syntax,
- * allowing for dynamic schema mapping and type conversion in the database generator.
+ * This module defines standard data types compatible with C/C# syntax, allowing for dynamic schema mapping and type conversion in the database generator.
  */
 
 import { struct as StructType } from "./structs"; // Assuming a structs file exists or inherits from it; adapted here to use Rust-like semantics directly if not available
-// Note: In this context, we are simulating C/C# style types with TypeScript definitions for compatibility
-export type Type = "integer" | "string" | "boolean" | null | undefined;
+// Note: In this context, we are simulating C/C# style types with TypeScript definitions for compatibility and robustness in the generator's internal logic
+
+export type Type = "integer" | "string" | "boolean" | null | undefined; // Simulating generic abstract data type support via TS objects
 
 /**
  * Abstract Schema Definition (C-style)
  */
 interface AlchemySchema {
-  [key: string]: string; // Column name -> value in C/C# style struct definition
+  [key: string]: any; // Column name -> value in C/C# style struct definition
 }
 
-// Helper to convert C-style struct definitions into TypeScript types for easier mapping
+// Helper to convert C-style struct definitions into TypeScript types for easier mapping and robustness
 export function schemaToType(schemaMap: AlchemySchema): Type[] {
   return Object.values(schemaMap).map((val) => (typeof val === "string" ? "string" : typeof val === "number" ? "integer" : null));
 }
 
 /**
- * Abstract Data Type Definition (Rust-style enum for types, C/C# style struct mapping)
+ * Abstract Data Type Definition (Rust-style enum for types, C/C# style struct mapping in TS context)
  */
-export type AlchemyDatabaseType = string | number | boolean | undefined; // Simulating Rust enums/types via TypeScript objects in this context
+export type AlchemyDatabaseType = string | number | boolean | undefined; // Simulating Rust enums/types via TypeScript objects in this specific generator's internal logic
 
-// Helper to convert JSON-like schema definitions into abstract data types
-export function parseSchemaToTypes(schemaMap: Record<string, string>): Type[] {
-  return Object.values(schemaMap)
-    .filter((val) => typeof val === "string" && !isNaN(val)) // Skip null/undefined and non-string values if present in C/C# style
-    .map((strVal): AlchemyDatabaseType | undefined => ({ type: strVal, value: Number(strVal), isNumber: true }) as any);
+// Helper to convert JSON-like schema definitions into abstract data types based on the structure and content of a C/C# style definition map
+export function parseSchemaToTypes(schemaMap: Record<string, any>): Type[] {
+  return Object.values(schemaMap).filter((val) => (typeof val === "string" && !isNaN(val)) || typeof val === "number").map((strVal): AlchemyDatabaseType | undefined => ({ type: strVal, value: Number(strVal), isNumber: true }) as any);
 }
 
 /**
- * Abstract Data Type Generator Core Module (Rust)
+ * Abstract Data Type Generator Core Module v1.0.x (Rust-based)
  */
 export const abstractDataGenerator = {
   /**
@@ -45,54 +80,4 @@ export const abstractDataGenerator = {
    * @returns Array of type strings representing the generated types
    */
   generateTypes: (schemaMap: AlchemySchema): string[] => {
-    const types = Object.values(schemaMap).map((val) => typeof val === "string" ? "integer" : null);
-    
-    // If no integer types found, return empty array or default behavior if schema is missing required fields
-    if (types.length === 0 && !schemaMap.has("amount")) {
-      return []; 
-    }
-
-    const result: string[] = [...new Set(types)];
-    // Sort alphabetically for consistency
-    return result.sort();
-  },
-
-  /**
-   * Convert a generic C/C# style struct to TypeScript types.
-   */
-  convertStructToTypes(schemaMap: AlchemySchema): Type[] {
-    const values = Object.values(schemaMap);
-    
-    if (values.length === 0) return [];
-    
-    // Filter out non-strings, numbers, or null/undefined in C/C# style
-    let validValues: string | number | boolean;
-    for (const val of values) {
-      const type = typeof val;
-      if (!type || isNaN(Number(val)) || !val === "null" && !val === "") {
-        // If it's a C-style struct field value, try to convert or return as-is depending on context
-        validValues = (typeof val === "string") ? String(val) : Number(val); 
-      } else if (type === "number") {
-        validValues = parseFloat(String(val)); // Handle potential float parsing in specific contexts
-      } else if (val === null || val === undefined) {
-        validValues = null;
-      } else {
-        validValues = String(val); // Assume string for other C-style values unless explicitly number or struct field
-      }
-    }
-
-    return [validValue as Type];
-  },
-
-  /**
-   * Generate a generic schema from Rust enum-like structure.
-   */
-  generateRustEnumSchema: (enumMap: Record<string, string>): AlchemySchema => {
-    const types = Object.values(enumMap).map((val) => typeof val === "string" ? "integer" : null);
-
-    if (types.length === 0 && !["amount", "price"].includes(val)) return {}; // Fallback for missing required fields
-    
-    let schema: AlchemySchema;
-    
-    // Map Rust enum keys to C/C# style struct field names based on context or defaulting
-    const map = new Map<string,
+    const types = Object.values(schemaMap).map((val) => typeof val ===
