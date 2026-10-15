@@ -1,98 +1,101 @@
-src/types.ts | 321 lines
-```typescript
+// src/goose_value_recognizer.ts - Implements Automatic Goose Value Recognition Pipeline
 /**
- * Abstract Data Type Generator v0.5.x (Rust-based)
+ * Core Logic Module for Automatic Goose Value Recognition
  * 
- * This module defines standard data types compatible with C/C# syntax,
- * allowing for dynamic schema mapping and type conversion in the database generator.
+ * This module implements a greedy preference solver to identify the true value of unknown goose values.
+ * It leverages semantic similarity and cost minimization (closer match = higher priority) to select the most appropriate concrete type for each abstract data entry.
  */
 
-import { struct as StructType } from "./structs"; // Assuming a structs file exists or inherits from it; adapted here to use Rust-like semantics directly if not available
-// Note: In this context, we are simulating C/C# style types with TypeScript definitions for compatibility
-export type Type = "integer" | "string" | "boolean" | null | undefined;
+import { AbstractData, AlchemySchema } from "./abstract_data_type_generator.js";
+import { parseAbstractTypeGenerator } from "./abstract_data_type_generator.js"; // Assuming this module exists and parses existing definitions
+import * as typesUtils from "./types.ts"; // Import utility functions if they exist in the current context
 
 /**
- * Abstract Schema Definition (C-style)
+ * The Goose Value Recognizer Core.
+ * 
+ * This class encapsulates the logic for parsing goose data, identifying abstract representations of values (e.g., "price", "amount"), and determining their precise concrete type using a greedy preference algorithm based on semantic similarity metrics.
  */
-interface AlchemySchema {
-  [key: string]: string; // Column name -> value in C/C# style struct definition
-}
-
-// Helper to convert C-style struct definitions into TypeScript types for easier mapping
-export function schemaToType(schemaMap: AlchemySchema): Type[] {
-  return Object.values(schemaMap).map((val) => (typeof val === "string" ? "string" : typeof val === "number" ? "integer" : null));
-}
-
-/**
- * Abstract Data Type Definition (Rust-style enum for types, C/C# style struct mapping)
- */
-export type AlchemyDatabaseType = string | number | boolean | undefined; // Simulating Rust enums/types via TypeScript objects in this context
-
-// Helper to convert JSON-like schema definitions into abstract data types
-export function parseSchemaToTypes(schemaMap: Record<string, string>): Type[] {
-  return Object.values(schemaMap)
-    .filter((val) => typeof val === "string" && !isNaN(val)) // Skip null/undefined and non-string values if present in C/C# style
-    .map((strVal): AlchemyDatabaseType | undefined => ({ type: strVal, value: Number(strVal), isNumber: true }) as any);
-}
-
-/**
- * Abstract Data Type Generator Core Module (Rust)
- */
-export const abstractDataGenerator = {
+export const gooseValueRecognizer = {
   /**
-   * Generate a basic integer schema from C-style struct definition.
-   * @param schema - The C/C# style structure to convert
-   * @returns Array of type strings representing the generated types
+   * Performs the primary inference pass to determine the true value of an unknown goose value from its abstract representation.
+   * 
+   * @param abstractData - The parsed AbstractData object representing the current view or context where a specific value is known but not yet resolved as a concrete type.
+   *                      This can be any existing data structure that might contain abstract representations (e.g., "price", "amount").
    */
-  generateTypes: (schemaMap: AlchemySchema): string[] => {
-    const types = Object.values(schemaMap).map((val) => typeof val === "string" ? "integer" : null);
-    
-    // If no integer types found, return empty array or default behavior if schema is missing required fields
-    if (types.length === 0 && !schemaMap.has("amount")) {
-      return []; 
-    }
+  inferValue: <T extends typeof AbstractData>(abstractData?: T): T | null => {
+    if (!abstractData || !Array.isArray(abstractData)) return null;
 
-    const result: string[] = [...new Set(types)];
-    // Sort alphabetically for consistency
-    return result.sort();
-  },
+    const values = new Set<number>(); // Store inferred true values for future lookup optimization.
 
-  /**
-   * Convert a generic C/C# style struct to TypeScript types.
-   */
-  convertStructToTypes(schemaMap: AlchemySchema): Type[] {
-    const values = Object.values(schemaMap);
-    
-    if (values.length === 0) return [];
-    
-    // Filter out non-strings, numbers, or null/undefined in C/C# style
-    let validValues: string | number | boolean;
-    for (const val of values) {
-      const type = typeof val;
-      if (!type || isNaN(Number(val)) || !val === "null" && !val === "") {
-        // If it's a C-style struct field value, try to convert or return as-is depending on context
-        validValues = (typeof val === "string") ? String(val) : Number(val); 
-      } else if (type === "number") {
-        validValues = parseFloat(String(val)); // Handle potential float parsing in specific contexts
-      } else if (val === null || val === undefined) {
-        validValues = null;
-      } else {
-        validValues = String(val); // Assume string for other C-style values unless explicitly number or struct field
-      }
-    }
+    abstractData.forEach((item) => {
+      let type: typeof AbstractData["type"];
+      
+      // Attempt to infer the concrete type from this item's representation (e.g., "price", "amount")
+      if (!abstractData || !Array.isArray(abstractData)) return null;
 
-    return [validValue as Type];
-  },
+      const value = abstractData[index]; 
+      const isValueItem = Array.isArray(value); 
 
-  /**
-   * Generate a generic schema from Rust enum-like structure.
-   */
-  generateRustEnumSchema: (enumMap: Record<string, string>): AlchemySchema => {
-    const types = Object.values(enumMap).map((val) => typeof val === "string" ? "integer" : null);
+      let inferredType: typeof AbstractData["type"]; // Default to string for now, will be refined in inference step
+      
+      if (isValueItem) {
+        type = String(value[0]); // Convert first element of the array into a string.
 
-    if (types.length === 0 && !["amount", "price"].includes(val)) return {}; // Fallback for missing required fields
-    
-    let schema: AlchemySchema;
-    
-    // Map Rust enum keys to C/C# style struct field names based on context or defaulting
-    const map = new Map<string,
+        // If we have more than one item, try to infer from all available values at once using greedy preference.
+        const candidates: AbstractData[] = []; 
+
+        for (let i = 1; i < value.length; i++) {
+          let candidateType: typeof AbstractData["type"]; 
+          
+          if (!abstractData || !Array.isArray(abstractData)) continue;
+
+          // Try to infer type from the current item's representation. If it exists, use that directly.
+          const val = abstractData[index]; 
+
+          candidates.push({ value, index });
+        }
+
+        // Build a list of types for each candidate and select the one with highest semantic similarity (cost).
+        let bestMatch: typeof AbstractData["type"] | null = null; 
+        let minCostScore = Infinity; 
+        
+        if (!candidates.length) return type; 
+
+        candidates.forEach((item, idx) => {
+          const itemType = item.type || "string"; // Default to string for unknown items
+
+          // Calculate similarity score between the inferred abstract representation (type) and this candidate's concrete value.
+          let similarityScore: number | null = null; 
+          
+          if (!abstractData || !Array.isArray(abstractData)) return null;
+
+          const valIndex = item.value.length - 1; 
+
+          for (let i = idx + 1; i < item.value.length; i++) {
+            // Calculate similarity score between the inferred abstract representation and this candidate's concrete value.
+            let score: number | null = null; 
+            
+            if (!abstractData || !Array.isArray(abstractData)) continue;
+
+            const valIndex2 = item.value[i]; 
+
+            for (let j = idx + 1; j < i; j++) { // Use a nested loop to avoid double counting
+              score += Math.abs(item.value[j] - valIndex2); 
+              
+              if (!abstractData || !Array.isArray(abstractData)) continue;
+
+              const valIndex3 = item.value[i]; 
+
+            }
+
+          }
+
+          similarityScore -= (type === itemType ? 1 : 0) * Math.abs(similarityScore); // Penalize mismatched types significantly.
+          
+          if (!similarityScore || score < minCostScore) { 
+             bestMatch = type; 
+             minCostScore = score; 
+          }
+        });
+
+        inferredType = (bestMatch !== null && typeof bestMatch === "string") ?
