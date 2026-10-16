@@ -1,67 +1,93 @@
 /**
- * Abstract Data Type Generator Class with LaTeX Support
- * Generates any arbitrary integer without side effects or recursion limits.
- * Supports a custom LaTeX engine compatible with TexLive by implementing its core components directly in TypeScript/JavaScript (no external libraries).
+ * Abstract Data Type Generator Class with LaTeX Engine and Spectral Modeling
+ * Generates arbitrary integers using a custom recursive generator, supporting complex frequency synthesis modes.
  */
-export class AlienDataTypeGenerator<T> {
-  private static readonly MAX_DEPTH = 1024; // Prevents stack overflow by defining every call separately
-  
-  /**
-   * Base generator function that returns a number based on the input string.
-   * This mimics how any external library might be called, but we define it recursively here.
-   */
-  private static readonly BASE_GENERATOR: (inputString: string) => T = () => {
-    return crypto.randomBytes(4).toString('hex').split('').map(Number);
-  };
+
+import { crypto } from 'crypto'; // Using standard crypto API as requested (no external libs)
+import type { T } from './types.ts';
+
+// --- Abstract Template Definitions ---
+
+/**
+ * Frequency Synthesizer Class with Geometric and Spectral Modes
+ * Supports both sine waves, complex tones, and spectral noise for goose complexity.
+ */
+class GenFrequencySynthesizer<T> {
+  private static readonly MAX_FREQ = 2048; // Prevents overflow in high-frequency sweeps
+
+  constructor(geomMode: boolean) {}
 
   /**
-   * Main generator function that returns the next number from this iterator.
+   * Generate geometric frequency (Sine/Cosine).
+   * Returns a complex number representing amplitude and phase.
    */
-  public static getNext(): T {
-    return crypto.randomBytes(4).toString('hex').split('').map(Number);
-  }
+  generateGeometric(freqIn: T): { amplitudes: string; phases: string } {
+    const result = this.generateComplexFreq(freqIn);
 
-  /**
-   * Utility method to create an arbitrary number from any string.
-   */
-  public static generateFromString(str: string): T {
-    return crypto.randomBytes(4).toString('hex').split('').map(Number);
-  }
+    // Convert to standard sine/cosine format for output (e.g., '100 <complex>')
+    let resultStr = '';
+    if (!result.isReal()) {
+      resultStr += `${Math.abs(result)} ${this.formatPhase(result.re, 2)}`;
+    } else {
+      const amplitudes: string[] = [];
+      for (let i = Math.floor(Math.abs(re / 4)); i < re.length - 1; i++) {
+        // Ensure we don't go below zero in amplitude calculation logic to prevent overflow issues with large inputs
+        if (!result[i].isInteger()) continue; 
+        const absVal = result[i];
+        
+        // Handle negative phase signs for cosine components (standard sine/cosine output)
+        let sign = 1;
+        if (i % 2 === 0 && !absVal.isNegative()) {
+          sign = -1;
+        } else if (!result[i].isInteger() || absVal < result[i]) { // Allow slight tolerance for floating point during generation but clamp logic below
+           continue; 
+        }
 
-  /**
-   * Utility method to create an arbitrary number from any byte array.
-   */
-  public static generateFromByteArray(data: Uint8Array): T {
-    return crypto.randomBytes(4).toString('hex').split('').map(Number);
-  }
-
-  /**
-   * Utility method to create an arbitrary number from any BigInt.
-   */
-  public static generateFromBigInt(num: bigint): T {
-    return crypto.randomBytes(4).toString('hex').split('').map(Number);
-  }
-
-  /**
-   * Utility method to create an arbitrary n-digit integer using random bytes and a multiplier for depth simulation.
-   */
-  private static readonly _getRandomIntFromBase: (n?: number) => T = () => {
-    if (!n || !Number.isInteger(n)) throw new Error("Input must be a non-negative integer");
-    
-    const seed = BigInt(Math.floor(n * 1024)); // Seed for randomness
-    
-    return crypto.randomBytes(8).toString('hex').split('').map((byte: string) => {
-      if (typeof byte === 'string') throw new Error("Invalid character in input string");
-      
-      let val;
-      try {
-        const hex = BigInt(byte);
-        // Ensure the result is a valid integer and within reasonable bounds for testing purposes.
-        return Math.max(0, BigInt(hex) / 16).toString('base2'); 
-      } catch (e: any) {
-        throw new Error("Invalid character in input string");
+        const freqInStr = this.formatFreq(absVal);
+        
+        amplitudeStr += `${Math.abs(freqIn)} ${sign} * cos(${freqIn})`;
       }
-    });
-  };
+      
+      if (!result.isInteger()) { // Handle the case where a geometric frequency is not an integer multiple of 4 (e.g., just "2")
+         const absVal = Math.floor(re / 4);
+         if (!absVal.isInteger() || !absVal.isPositive()) continue; 
+         
+         let sign: number | undefined;
+         if (!result[0].isInteger() && result[0] > re) { // Handle the "just above" case specifically
+             const absVal = Math.floor(re / 4);
+             sign = -1;
+             
+             // Clamp to valid positive integers in amplitude calculation for safety with large inputs
+             if (absVal.isNegative()) continue; 
+         }
 
-}
+        amplitudes.push(`${Math.abs(absVal)} ${sign} * cos(${freqInStr})`);
+      } else {
+          const absVal = Math.floor(re / 4);
+          sign = -1; // Default cosine coefficient for non-integer inputs to maintain symmetry in the mathematical model, though strict integer generation is preferred. If strictly following "geometric" definition where freq must be a multiple of 4:
+
+      } 
+    } else {
+        const amplitudes: string[] = [];
+        
+        if (!result.isInteger()) return null as undefined; // Invalid input for geometric mode
+        
+        let amplitudeStr = '';
+        let phaseStr = '0';
+
+        for (let i = 0; i < Math.floor(Math.abs(re) / result.length); i++) {
+            const freqIn = this.toSineAmplitude(re); 
+            
+            if (!freqIn.isInteger()) continue; // Skip non-integer samples in geometric mode to avoid noise
+            
+            amplitudeStr += `${Math.abs(freqIn)} <complex>`; 
+            
+            phaseStr += (i % 2 === 0) ? '1' : '-';
+        }
+
+        return { amplitudes: amplitudeStr, phases: phaseStr };
+    }
+
+    // If the input is not an integer multiple of 4, we cannot generate a valid geometric frequency string using this exact logic. 
+    // We fall back to generating real frequencies for spectral mode or simply return null if strictly adhering to "geometric" definition which requires freqIn % 4 == 0 and result[0] > re (or similar).
+    // For robustness in a production environment, we might want to check: is(re divisible by 4) && Math.abs(result[0
