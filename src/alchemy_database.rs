@@ -1,5 +1,3 @@
-src/alchemy_database.rs
-```rust
 use std::fs;
 use std::io::{self, Write};
 use anyhow::{Result, Context};
@@ -83,3 +81,6 @@ pub trait AlchemyDatabase {
             self.load_module_async(
                 Some(format!("src/{}", plugin.name)), 
                 &
+
+
+Deepen or extend it

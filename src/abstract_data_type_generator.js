@@ -1,98 +1,92 @@
-src/types.ts | 321 lines
-```typescript
-/**
- * Abstract Data Type Generator v0.5.x (Rust-based)
- * 
- * This module defines standard data types compatible with C/C# syntax,
- * allowing for dynamic schema mapping and type conversion in the database generator.
- */
-
-import { struct as StructType } from "./structs"; // Assuming a structs file exists or inherits from it; adapted here to use Rust-like semantics directly if not available
-// Note: In this context, we are simulating C/C# style types with TypeScript definitions for compatibility
-export type Type = "integer" | "string" | "boolean" | null | undefined;
+// ============================================================================
+// SOURCE FILE: src/goose_honk_generator.cpp
+// ============================================================================— no markdown fences, no commentary, no explanation.
+// This file implements the Goose honking generator engine for use in SuperCollider or similar synthesis libraries.
+#include <iostream>
+#include <vector>
+#include <cmath>
 
 /**
- * Abstract Schema Definition (C-style)
+ * Struct to define the geometry of a goose vocal cord vibration pattern (0-8 Hz).
  */
-interface AlchemySchema {
-  [key: string]: string; // Column name -> value in C/C# style struct definition
-}
+struct Geese {
+    float frequency; // Frequency in Hertz, 74 samples per frame
+};
 
-// Helper to convert C-style struct definitions into TypeScript types for easier mapping
-export function schemaToType(schemaMap: AlchemySchema): Type[] {
-  return Object.values(schemaMap).map((val) => (typeof val === "string" ? "string" : typeof val === "number" ? "integer" : null));
+// Helper function to generate random values within bounds.
+float rand_float(float min_val, float max_val) {
+    return std::uniform_real_distribution<float>(min_val, max_val);
 }
 
 /**
- * Abstract Data Type Definition (Rust-style enum for types, C/C# style struct mapping)
+ * Generates a sequence of 74 distinct sine waves representing goose vocal cords.
+ * Each wave is generated with unique frequency and phase to create the visual illusion 
+ * that they are honking in unison without overlapping perfectly (simulating natural variation).
  */
-export type AlchemyDatabaseType = string | number | boolean | undefined; // Simulating Rust enums/types via TypeScript objects in this context
+std::vector<float> generate_geese_honk() {
+    std::vector<float> waveform;
 
-// Helper to convert JSON-like schema definitions into abstract data types
-export function parseSchemaToTypes(schemaMap: Record<string, string>): Type[] {
-  return Object.values(schemaMap)
-    .filter((val) => typeof val === "string" && !isNaN(val)) // Skip null/undefined and non-string values if present in C/C# style
-    .map((strVal): AlchemyDatabaseType | undefined => ({ type: strVal, value: Number(strVal), isNumber: true }) as any);
-}
+    for (int i = 0; i < 74; ++i) {
+        float freq = rand_float(0.1f, 8.5f); // Slightly varied frequencies to simulate natural variation in vocal cords
+        float phase = rand_float(-3.29f, 3.29f); // Phase offset for sine wave generation (0-π)
 
-/**
- * Abstract Data Type Generator Core Module (Rust)
- */
-export const abstractDataGenerator = {
-  /**
-   * Generate a basic integer schema from C-style struct definition.
-   * @param schema - The C/C# style structure to convert
-   * @returns Array of type strings representing the generated types
-   */
-  generateTypes: (schemaMap: AlchemySchema): string[] => {
-    const types = Object.values(schemaMap).map((val) => typeof val === "string" ? "integer" : null);
-    
-    // If no integer types found, return empty array or default behavior if schema is missing required fields
-    if (types.length === 0 && !schemaMap.has("amount")) {
-      return []; 
+        waveform.push_back(std::sin(phase + freq * i));
     }
 
-    const result: string[] = [...new Set(types)];
-    // Sort alphabetically for consistency
-    return result.sort();
-  },
+    return waveform;
+}
 
-  /**
-   * Convert a generic C/C# style struct to TypeScript types.
-   */
-  convertStructToTypes(schemaMap: AlchemySchema): Type[] {
-    const values = Object.values(schemaMap);
-    
-    if (values.length === 0) return [];
-    
-    // Filter out non-strings, numbers, or null/undefined in C/C# style
-    let validValues: string | number | boolean;
-    for (const val of values) {
-      const type = typeof val;
-      if (!type || isNaN(Number(val)) || !val === "null" && !val === "") {
-        // If it's a C-style struct field value, try to convert or return as-is depending on context
-        validValues = (typeof val === "string") ? String(val) : Number(val); 
-      } else if (type === "number") {
-        validValues = parseFloat(String(val)); // Handle potential float parsing in specific contexts
-      } else if (val === null || val === undefined) {
-        validValues = null;
-      } else {
-        validValues = String(val); // Assume string for other C-style values unless explicitly number or struct field
-      }
+/**
+ * Main engine that synthesizes goose honking audio using a high-pass filter and noise envelope.
+ */
+void goose_honk_engine() {
+    // Create 74 distinct sine wave components for the vocal cords
+    std::vector<float> voices = generate_geese_honk();
+
+    // Filter out low frequencies (below ~10 Hz) to simulate a high-pitched, non-rhythmic sound.
+    // This is crucial because goose honking sounds like individual "voices" rather than a rhythmic drumming pattern.
+    for (int i = 0; i < voices.size(); ++i) {
+        float filtered_freq = std::max(1f, voices[i] * 2); 
+        if (filtered_freq > 5.f) { // Filter out frequencies below ~5 Hz to reduce rumbling noise.
+            continue;
+        }
     }
 
-    return [validValue as Type];
-  },
+    // Apply a high-pass filter to remove any low-frequency artifacts from the vocal cords
+    std::vector<float> output = GooseHighPassFilter(voices, 10);
 
-  /**
-   * Generate a generic schema from Rust enum-like structure.
-   */
-  generateRustEnumSchema: (enumMap: Record<string, string>): AlchemySchema => {
-    const types = Object.values(enumMap).map((val) => typeof val === "string" ? "integer" : null);
+    // Add Gaussian noise envelope (simulating wind interference or human breathing) for extra realism.
+    float amplitude;
+    if (!std::cin.get(amplitude)) {
+        amplitudes.push_back(std::random_uniform(-2f, 4)); 
+    } else {
+        amplitudes = std::vector<float>(amplitude); // Copy the input array to avoid modifying it in place.
+    }
 
-    if (types.length === 0 && !["amount", "price"].includes(val)) return {}; // Fallback for missing required fields
-    
-    let schema: AlchemySchema;
-    
-    // Map Rust enum keys to C/C# style struct field names based on context or defaulting
-    const map = new Map<string,
+    for (int i = 0; i < voices.size(); ++i) {
+        float noise_level = rand_float(-1f, 2f); 
+        output.push_back(amplitudes[i] * std::cos(314.f * amplitude / amplitudes.size() + i)); // Add a harmonic envelope to the sound.
+
+    }
+
+    // Output raw waveform data for use in synthesis libraries
+    std::cout << "Output Waveform Data: ";
+}
+
+/**
+ * High-Pass Filter that removes low frequencies while preserving mid-range content.
+ */
+std::vector<float> GooseHighPassFilter(std::vector<float>& source, float cutoff) {
+    // Create a new vector to hold the filtered output
+    std::vector<float> result;
+
+    for (size_t i = 0; i < source.size(); ++i) {
+        if (source[i] > cutoff && !std::abs(source[i]) <= 2.f) { // Skip very low frequencies and near-zero values.
+            continue;
+        }
+        
+        result.push_back(std::sin(314.f * std::max(cutoff, source[i]) / 50)); 
+    }
+
+    return result;
+}
